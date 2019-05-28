@@ -5,7 +5,11 @@ final class AccessibilityElement {
     static let systemWideElement = AccessibilityElement.createSystemWideElement()
 
     var position: CGPoint? {
-        get { return self.getPosition() }
+        get {
+            let prePos: CGPoint = Mouse.currentPosition()
+            self.getUrl(prePos: prePos)
+            return self.getPosition()
+        }
         set {
             if let position = newValue {
                 self.set(position: position)
@@ -14,7 +18,11 @@ final class AccessibilityElement {
     }
 
     var size: CGSize? {
-        get { return self.getSize() }
+        get {
+            let prePos: CGPoint = Mouse.currentPosition()
+            self.getUrl(prePos: prePos)
+            return self.getSize()
+        }
         set {
             if let size = newValue {
                 self.set(size: size)
@@ -72,6 +80,44 @@ final class AccessibilityElement {
                                      true as CFTypeRef)
     }
 
+    //pm add function
+    func getTitle() -> String? {
+        var title : String?
+        title = self.value(for: .title)
+         
+        if title != nil {
+            print(title!);
+        }
+        return self.value(for: .title)
+    }
+    
+    func getUrl(prePos point :CGPoint) -> String? {
+        var ref: AXUIElement?
+        AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &ref)
+      
+        if let url /*: String?*/ =  self.value(for: .window, target: ref){
+            print("window:\(url)")
+        }
+        
+        if let url /*: String?*/ =  self.value(for: .description, target: ref){
+            print("des:\(url)")
+        }
+        
+        if let url =  self.value(for: .contents, target: ref){
+             print("contents:\(url)")
+        }
+        
+        if let url  =  self.value(for: .url, target: ref){
+            print("url:\(url)")
+        }
+        
+        if let url  =  self.value(for: .value, target: ref){
+            print("value:\(url)")
+        }
+
+        return nil
+    }
+    
     // MARK: - Private functions
 
     private static func createSystemWideElement() -> Self {
@@ -98,26 +144,26 @@ final class AccessibilityElement {
         }
     }
 
-    private func rawValue(for attribute: NSAccessibilityAttributeName) -> AnyObject? {
+    private func rawValue(for attribute: NSAccessibilityAttributeName, target element: AXUIElement? = nil) -> AnyObject? {
         var rawValue: AnyObject?
-        let error = AXUIElementCopyAttributeValue(self.elementRef, attribute.rawValue as CFString, &rawValue)
+        let error = AXUIElementCopyAttributeValue(element ?? self.elementRef, attribute.rawValue as CFString, &rawValue)
         return error == .success ? rawValue : nil
     }
 
-    private func value(for attribute: NSAccessibilityAttributeName) -> Self? {
-        if let rawValue = self.rawValue(for: attribute), CFGetTypeID(rawValue) == AXUIElementGetTypeID() {
+    private func value(for attribute: NSAccessibilityAttributeName,element: AXUIElement? = nil) -> Self? {
+        if let rawValue = self.rawValue(for: attribute, target: element ?? self.elementRef), CFGetTypeID(rawValue) == AXUIElementGetTypeID() {
             return type(of: self).init(elementRef: rawValue as! AXUIElement)
         }
 
         return nil
     }
 
-    private func value(for attribute: NSAccessibilityAttributeName) -> String? {
-        return self.rawValue(for: attribute) as? String
+    private func value(for attribute: NSAccessibilityAttributeName,target element: AXUIElement? = nil) -> String? {
+        return self.rawValue(for: attribute, target: element ?? self.elementRef) as? String
     }
 
-    private func value<T>(for attribute: NSAccessibilityAttributeName) -> T? {
-        if let rawValue = self.rawValue(for: attribute), CFGetTypeID(rawValue) == AXValueGetTypeID() {
+    private func value<T>(for attribute: NSAccessibilityAttributeName, target element: AXUIElement? = nil) -> T? {
+        if let rawValue = self.rawValue(for: attribute, target: element ?? self.elementRef), CFGetTypeID(rawValue) == AXValueGetTypeID() {
             return (rawValue as! AXValue).toValue()
         }
 
